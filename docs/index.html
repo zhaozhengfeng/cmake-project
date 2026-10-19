@@ -1,0 +1,699 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BMS 设备监控平台 · Demo</title>
+<style>
+  :root{
+    --bg:#0b1117;
+    --panel:#121b24;
+    --panel2:#172431;
+    --line:#243342;
+    --text:#e6edf3;
+    --muted:#8b9bad;
+    --accent:#2dd4bf;
+    --accent2:#38bdf8;
+    --ok:#22c55e;
+    --warn:#f59e0b;
+    --danger:#ef4444;
+    --radius:14px;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;
+    color:var(--text);
+    font-family:"Segoe UI","Microsoft YaHei","PingFang SC",system-ui,sans-serif;
+    background:
+      radial-gradient(1100px 520px at 18% -12%, rgba(45,212,191,.10), transparent 62%),
+      radial-gradient(900px 500px at 92% 0%, rgba(56,189,248,.08), transparent 60%),
+      var(--bg);
+    min-height:100%;
+  }
+  button{font:inherit;color:inherit}
+
+  /* ---------- 顶栏 ---------- */
+  .topbar{
+    position:sticky;top:0;z-index:20;
+    display:flex;align-items:center;gap:16px;
+    padding:16px 28px;
+    background:rgba(11,17,23,.86);
+    border-bottom:1px solid var(--line);
+    backdrop-filter:blur(12px);
+  }
+  .logo{
+    width:38px;height:38px;border-radius:11px;flex:none;
+    display:grid;place-items:center;
+    background:linear-gradient(135deg,var(--accent),var(--accent2));
+    color:#06231f;font-weight:900;
+  }
+  .brand h1{margin:0;font-size:17px;letter-spacing:.3px}
+  .brand p{margin:2px 0 0;font-size:12px;color:var(--muted)}
+  .spacer{flex:1}
+  .live{
+    display:flex;align-items:center;gap:8px;
+    font-size:12px;color:var(--muted);
+    padding:7px 12px;border:1px solid var(--line);border-radius:999px;
+    background:rgba(18,27,36,.7);white-space:nowrap;
+  }
+  .pulse{width:8px;height:8px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 0 rgba(34,197,94,.6);animation:pulse 1.8s infinite}
+  @keyframes pulse{70%{box-shadow:0 0 0 8px rgba(34,197,94,0)}100%{box-shadow:0 0 0 0 rgba(34,197,94,0)}}
+  .clock{font-variant-numeric:tabular-nums;font-size:13px;color:var(--text);white-space:nowrap}
+
+  /* ---------- 主体 ---------- */
+  main{max-width:1500px;margin:0 auto;padding:22px 28px 52px}
+
+  .kpis{
+    display:grid;gap:14px;
+    grid-template-columns:repeat(4,minmax(0,1fr));
+    margin-bottom:18px;
+  }
+  .kpi{
+    position:relative;overflow:hidden;
+    padding:16px 18px;border:1px solid var(--line);border-radius:var(--radius);
+    background:linear-gradient(180deg,var(--panel2),var(--panel));
+  }
+  .kpi::after{
+    content:"";position:absolute;inset:auto -30px -46px auto;
+    width:110px;height:110px;border-radius:50%;
+    background:radial-gradient(circle,var(--kpiColor,rgba(45,212,191,.16)),transparent 68%);
+  }
+  .kpi label{display:block;font-size:12px;color:var(--muted);margin-bottom:8px}
+  .kpi b{font-size:28px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.5px}
+  .kpi b small{font-size:13px;font-weight:500;color:var(--muted);margin-left:4px}
+  .kpi .sub{font-size:11px;color:var(--muted);margin-top:4px}
+
+  .toolbar{
+    display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+    margin-bottom:16px;
+  }
+  .search{
+    display:flex;align-items:center;gap:8px;
+    background:var(--panel);border:1px solid var(--line);border-radius:10px;
+    padding:9px 12px;min-width:250px;
+  }
+  .search svg{flex:none;opacity:.6}
+  .search input{
+    background:transparent;border:0;outline:0;color:var(--text);
+    font:inherit;font-size:13px;width:100%;
+  }
+  .chips{display:flex;gap:8px;flex-wrap:wrap}
+  .chip{
+    padding:8px 13px;border-radius:999px;cursor:pointer;
+    border:1px solid var(--line);background:transparent;color:var(--muted);
+    font-size:12.5px;transition:.15s;
+  }
+  .chip:hover{color:var(--text);border-color:#31465a}
+  .chip.active{
+    color:#06231f;border-color:transparent;font-weight:600;
+    background:linear-gradient(135deg,var(--accent),#5eead4);
+  }
+  .count{margin-left:auto;font-size:12px;color:var(--muted)}
+
+  /* ---------- 卡片 ---------- */
+  .grid{
+    display:grid;gap:16px;
+    grid-template-columns:repeat(auto-fill,minmax(335px,1fr));
+  }
+  .card{
+    position:relative;cursor:pointer;
+    padding:16px 16px 12px;border:1px solid var(--line);border-radius:var(--radius);
+    background:linear-gradient(180deg,var(--panel2),var(--panel));
+    transition:transform .16s ease,border-color .16s ease,box-shadow .16s ease;
+  }
+  .card:hover{
+    transform:translateY(-2px);
+    border-color:#35516a;
+    box-shadow:0 14px 34px rgba(0,0,0,.35);
+  }
+  .card.offline{opacity:.55;filter:grayscale(.5)}
+  .card-head{display:flex;align-items:center;gap:9px;margin-bottom:14px}
+  .dot{width:9px;height:9px;border-radius:50%;flex:none}
+  .dot.on{background:var(--ok);box-shadow:0 0 10px rgba(34,197,94,.75)}
+  .dot.off{background:#64748b}
+  .card-head .name{font-size:15px;font-weight:700;letter-spacing:.2px}
+  .card-head .sn{font-size:10.5px;color:var(--muted);margin-left:2px}
+  .card-head .state{
+    margin-left:auto;font-size:11px;padding:3px 9px;border-radius:999px;
+    border:1px solid var(--line);color:var(--muted);white-space:nowrap;
+  }
+  .card-head .state.on{color:#86efac;border-color:rgba(34,197,94,.35);background:rgba(34,197,94,.08)}
+  .card-head .state.off{color:#94a3b8}
+
+  .soc-row{display:flex;align-items:center;gap:14px}
+  .ring{
+    --pct:50;flex:none;width:68px;height:68px;border-radius:50%;
+    background:conic-gradient(var(--accent) calc(var(--pct) * 1%), #1b2733 0);
+    display:grid;place-items:center;position:relative;
+  }
+  .ring::before{
+    content:"";position:absolute;inset:8px;border-radius:50%;background:var(--panel2);
+  }
+  .ring span{position:relative;font-size:15px;font-weight:700;font-variant-numeric:tabular-nums}
+  .ring span small{font-size:9px;font-weight:500;color:var(--muted)}
+
+  .metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px 4px;flex:1;min-width:0}
+  .metric{min-width:0;overflow:hidden}
+  .metric label{display:block;font-size:10px;color:var(--muted);margin-bottom:2px;white-space:nowrap}
+  .metric b{font-size:13px;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .pos{color:#fca5a5}
+  .neg{color:#86efac}
+
+  .spark{display:block;width:100%;height:40px;margin:13px 0 9px;opacity:.95}
+
+  .alarms{display:flex;gap:6px;flex-wrap:wrap;min-height:24px}
+  .tag{font-size:10.5px;padding:3px 8px;border-radius:6px;white-space:nowrap}
+  .tag.warn{color:#fcd34d;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.28)}
+  .tag.danger{color:#fca5a5;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3)}
+  .tag.ok{color:#86efac;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.24)}
+
+  .card-foot{
+    display:flex;align-items:center;gap:10px;
+    margin-top:11px;padding-top:10px;border-top:1px solid rgba(36,51,66,.75);
+    font-size:11px;color:var(--muted);
+  }
+  .card-foot span:last-child{margin-left:auto;white-space:nowrap}
+
+  .empty{
+    grid-column:1/-1;padding:70px 20px;text-align:center;color:var(--muted);
+    border:1px dashed var(--line);border-radius:var(--radius);
+  }
+
+  /* ---------- 详情弹层 ---------- */
+  .modal{
+    position:fixed;inset:0;z-index:50;
+    display:grid;place-items:center;padding:22px;
+    background:rgba(4,8,12,.74);backdrop-filter:blur(6px);
+  }
+  .modal.hidden{display:none}
+  .sheet{
+    width:min(1040px,100%);max-height:92vh;overflow:auto;
+    border:1px solid #2c3f52;border-radius:18px;
+    background:linear-gradient(180deg,#15212d,#0f1821);
+    box-shadow:0 30px 80px rgba(0,0,0,.6);
+  }
+  .sheet-head{
+    position:sticky;top:0;z-index:2;
+    display:flex;align-items:center;gap:12px;
+    padding:18px 22px;border-bottom:1px solid var(--line);
+    background:rgba(21,33,45,.96);backdrop-filter:blur(8px);
+  }
+  .sheet-head h2{margin:0;font-size:18px}
+  .sheet-head .sub{font-size:11.5px;color:var(--muted);margin-top:2px}
+  .close{
+    margin-left:auto;width:34px;height:34px;border-radius:9px;cursor:pointer;
+    border:1px solid var(--line);background:transparent;color:var(--muted);font-size:18px;line-height:1;
+  }
+  .close:hover{color:var(--text);border-color:#3a5168}
+  .sheet-body{padding:20px 22px 26px}
+  .metric-strip{
+    display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;margin-bottom:18px;
+  }
+  .metric-box{padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:rgba(18,27,36,.65)}
+  .metric-box label{display:block;font-size:10.5px;color:var(--muted);margin-bottom:4px}
+  .metric-box b{font-size:15px;font-variant-numeric:tabular-nums}
+
+  .charts{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px}
+  .chart-card{border:1px solid var(--line);border-radius:12px;padding:12px 14px 8px;background:rgba(18,27,36,.55)}
+  .chart-title{display:flex;align-items:baseline;gap:8px;font-size:12px;color:var(--muted);margin-bottom:6px}
+  .chart-title b{font-size:14px;color:var(--text);font-variant-numeric:tabular-nums;margin-left:auto}
+  .linechart{display:block;width:100%;height:112px}
+
+  .cells{border:1px solid var(--line);border-radius:12px;padding:14px 16px;background:rgba(18,27,36,.55);margin-bottom:16px}
+  .cells-head{display:flex;align-items:baseline;gap:10px;font-size:12px;color:var(--muted);margin-bottom:12px}
+  .cells-head b{color:var(--text);font-variant-numeric:tabular-nums}
+  .cells-head span:last-child{margin-left:auto}
+  .cell-bars{display:flex;align-items:flex-end;gap:5px;height:120px}
+  .cell-bar{flex:1;display:flex;flex-direction:column;justify-content:flex-end;gap:5px;height:100%}
+  .cell-bar i{display:block;border-radius:3px 3px 0 0;background:linear-gradient(180deg,#2dd4bf,#0e7490);min-height:3px}
+  .cell-bar.low i{background:linear-gradient(180deg,#fbbf24,#b45309)}
+  .cell-bar.high i{background:linear-gradient(180deg,#f87171,#b91c1c)}
+  .cell-bar em{font-style:normal;font-size:9px;color:var(--muted);text-align:center;font-variant-numeric:tabular-nums}
+
+  .alarm-list{display:flex;flex-direction:column;gap:8px}
+  .alarm-row{
+    display:flex;align-items:center;gap:10px;padding:10px 12px;
+    border:1px solid var(--line);border-radius:9px;background:rgba(18,27,36,.5);font-size:12.5px;
+  }
+  .alarm-row .time{margin-left:auto;color:var(--muted);font-size:11px;white-space:nowrap}
+
+  .demo-note{
+    margin-top:18px;font-size:11px;color:var(--muted);
+    display:flex;align-items:center;gap:7px;
+  }
+  .demo-note::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--warn)}
+
+  @media (max-width:1050px){
+    .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .charts{grid-template-columns:1fr}
+    .metric-strip{grid-template-columns:repeat(3,minmax(0,1fr))}
+  }
+  @media (max-width:680px){
+    .topbar{padding:14px 16px;flex-wrap:wrap}
+    main{padding:16px}
+    .grid{grid-template-columns:1fr}
+    .brand p{display:none}
+    .live{display:none}
+    .metric-strip{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .sheet-body{padding:16px}
+    .sheet-head{padding:14px 16px}
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="logo">
+    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="2" y="7" width="17" height="10" rx="2"></rect>
+      <path d="M22 10v4"></path>
+      <path d="M6 11h4"></path>
+    </svg>
+  </div>
+  <div class="brand">
+    <h1>BMS 设备监控平台</h1>
+    <p>电池管理系统 · 全设备状态看板</p>
+  </div>
+  <div class="spacer"></div>
+  <div class="live"><span class="pulse"></span>模拟数据流 · 1 Hz</div>
+  <div class="clock" id="clock">--:--:--</div>
+</header>
+
+<main>
+  <section class="kpis" id="kpis"></section>
+
+  <section class="toolbar">
+    <label class="search">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path>
+      </svg>
+      <input id="q" type="search" placeholder="搜索设备名称或 BMS 序列号…" autocomplete="off">
+    </label>
+    <div class="chips" id="filters">
+      <button class="chip active" data-mode="all">全部</button>
+      <button class="chip" data-mode="online">在线</button>
+      <button class="chip" data-mode="offline">离线</button>
+      <button class="chip" data-mode="alarm">告警</button>
+    </div>
+    <span class="count" id="count"></span>
+  </section>
+
+  <section class="grid" id="grid"></section>
+
+  <div class="demo-note">演示页面：数据由浏览器本地模拟生成，未连接真实设备。</div>
+</main>
+
+<div class="modal hidden" id="modal">
+  <div class="sheet">
+    <div class="sheet-head">
+      <div>
+        <h2 id="m-name">设备详情</h2>
+        <div class="sub" id="m-sub"></div>
+      </div>
+      <button class="close" id="m-close" aria-label="关闭">×</button>
+    </div>
+    <div class="sheet-body">
+      <div class="metric-strip" id="m-metrics"></div>
+      <div class="charts" id="m-charts"></div>
+      <div class="cells">
+        <div class="cells-head">
+          <span>单体电压</span>
+          <b id="m-cellrange">—</b>
+          <span id="m-cellinfo"></span>
+        </div>
+        <div class="cell-bars" id="m-cells"></div>
+      </div>
+      <div class="alarm-list" id="m-alarms"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  const DEVICE_COUNT = 16;
+  const CELL_COUNT = 16;
+  const HISTORY = 60;
+  const rand = (a, b) => a + Math.random() * (b - a);
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const fmt = (v, n = 1) => Number(v).toFixed(n);
+
+  const state = { q: '', mode: 'all', openId: null };
+
+  // ------------------------------------------------------------
+  // 模拟设备
+  // ------------------------------------------------------------
+  function makeDevice(i) {
+    const d = {
+      id: i,
+      name: 'AGV-' + String(i + 1).padStart(2, '0'),
+      sn: 'BMS-' + (2024000 + i * 37),
+      online: i !== 5,
+      soc: rand(38, 96),
+      soh: rand(92, 100),
+      cycles: Math.round(rand(60, 620)),
+      curr: rand(-4, 16),
+      temp1: rand(22, 33),
+      temp2: rand(22, 33),
+      cells: Array.from({ length: CELL_COUNT }, () => 3240 + rand(-12, 12)),
+      alarms: [],
+      lastSeen: Date.now(),
+      hist: { soc: [], volt: [], curr: [], temp: [] }
+    };
+
+    if (!d.online) d.lastSeen = Date.now() - 7 * 60 * 1000;
+    if (i === 7) d.cells[8] -= 65;   // 构造一台“单体偏低”的设备，展示压差告警
+
+    derive(d);
+    seedHistory(d);
+    return d;
+  }
+
+  // 以当前值为终点向前回溯，避免曲线末端出现跳变
+  function seedHistory(d) {
+    const s = new Array(HISTORY), v = new Array(HISTORY);
+    const c = new Array(HISTORY), t = new Array(HISTORY);
+    let soc = d.soc, volt = d.volt, curr = d.curr, temp = d.temp1;
+
+    for (let k = HISTORY - 1; k >= 0; k--) {
+      s[k] = soc; v[k] = volt; c[k] = curr; t[k] = temp;
+      soc = clamp(soc + rand(-0.16, 0.16), 3, 100);
+      volt = clamp(volt + rand(-0.035, 0.035), 47, 54.6);
+      curr = clamp(curr + rand(-1.1, 1.1), -22, 34);
+      temp = clamp(temp + rand(-0.16, 0.16), 16, 43);
+    }
+    d.hist = { soc: s, volt: v, curr: c, temp: t };
+  }
+
+  function derive(d) {
+    d.cellMax = Math.round(Math.max.apply(null, d.cells));
+    d.cellMin = Math.round(Math.min.apply(null, d.cells));
+    d.volt = d.cells.reduce((a, b) => a + b, 0) / 1000;
+    d.diff = (d.cellMax - d.cellMin) / 1000;
+
+    const a = [];
+    if (d.cellMax > 3420) a.push(['单体电压过高1级', 'warn']);
+    if (d.cellMin < 3050) a.push(['单体电压过低1级', 'warn']);
+    if (d.temp1 > 40) a.push(['温度过高1级', 'danger']);
+    if (d.soc < 15) a.push(['SOC过低1级', 'warn']);
+    if (d.curr > 30) a.push(['放电电流过大1级', 'danger']);
+    if (d.diff > 0.05) a.push(['单体压差过大1级', 'warn']);
+    // 固定几台设备展示告警样式
+    if (d.id === 3) a.push(['主回路告警', 'danger']);
+    d.alarms = a;
+  }
+
+  let devices = Array.from({ length: DEVICE_COUNT }, (_, i) => makeDevice(i));
+
+  function tick() {
+    const now = Date.now();
+    for (const d of devices) {
+      if (!d.online) continue;
+
+      d.soc = clamp(d.soc + rand(-0.09, 0.09), 3, 100);
+      if (Math.random() < 0.012) d.curr = rand(-19, -6);       // 偶发充电
+      else d.curr = clamp(d.curr + rand(-1.3, 1.3), -25, 35);
+      d.temp1 = clamp(d.temp1 + rand(-0.13, 0.13), 15, 46);
+      d.temp2 = clamp(d.temp1 + rand(-1.1, 1.1), 15, 46);
+
+      const center = 3200 + (d.soc - 50) * 1.35;
+      d.cells = d.cells.map(v => clamp(v + rand(-1.2, 1.2) + (center - v) * 0.06, 3000, 3500));
+      if (d.id === 7) d.cells[8] = center - 65 + rand(-3, 3);
+
+      derive(d);
+      d.lastSeen = now;
+
+      d.hist.soc.push(d.soc);
+      d.hist.volt.push(d.volt);
+      d.hist.curr.push(d.curr);
+      d.hist.temp.push(d.temp1);
+      for (const k in d.hist) {
+        if (d.hist[k].length > HISTORY) d.hist[k].shift();
+      }
+    }
+    render();
+  }
+
+  // ------------------------------------------------------------
+  // 渲染
+  // ------------------------------------------------------------
+  function render() {
+    renderClock();
+    renderKpis();
+    renderGrid();
+    if (state.openId !== null) renderModal();
+  }
+
+  function renderClock() {
+    const el = document.getElementById('clock');
+    if (el) el.textContent = new Date().toLocaleTimeString('zh-CN', { hour12: false });
+  }
+
+  function renderKpis() {
+    const total = devices.length;
+    const online = devices.filter(d => d.online).length;
+    const alarmed = devices.filter(d => d.online && d.alarms.length > 0).length;
+    const avgSoc = devices.reduce((a, d) => a + d.soc, 0) / total;
+
+    const items = [
+      { label: '接入设备', value: total, sub: '已注册 BMS 总数', color: 'rgba(56,189,248,.18)' },
+      { label: '在线设备', value: online, sub: `在线率 ${Math.round(online / total * 100)}%`, color: 'rgba(34,197,94,.18)' },
+      { label: '告警设备', value: alarmed, sub: '存在活跃告警', color: 'rgba(239,68,68,.18)' },
+      { label: '平均 SOC', value: fmt(avgSoc, 1), unit: '%', sub: '全部在线设备', color: 'rgba(45,212,191,.18)' }
+    ];
+
+    document.getElementById('kpis').innerHTML = items.map(it => `
+      <div class="kpi" style="--kpiColor:${it.color}">
+        <label>${it.label}</label>
+        <b>${it.value}${it.unit ? `<small>${it.unit}</small>` : ''}</b>
+        <div class="sub">${it.sub}</div>
+      </div>
+    `).join('');
+  }
+
+  function filtered() {
+    const q = state.q.trim().toLowerCase();
+    return devices.filter(d => {
+      if (state.mode === 'online' && !d.online) return false;
+      if (state.mode === 'offline' && d.online) return false;
+      if (state.mode === 'alarm' && !(d.online && d.alarms.length)) return false;
+      if (q && !(d.name + ' ' + d.sn).toLowerCase().includes(q)) return false;
+      return true;
+    });
+  }
+
+  function renderGrid() {
+    const list = filtered();
+    const grid = document.getElementById('grid');
+    document.getElementById('count').textContent = `显示 ${list.length} / ${devices.length} 台`;
+
+    if (!list.length) {
+      grid.innerHTML = '<div class="empty">没有匹配的设备</div>';
+      return;
+    }
+    grid.innerHTML = list.map(cardHtml).join('');
+  }
+
+  function ago(d) {
+    if (d.online) return '刚刚';
+    const m = Math.max(1, Math.round((Date.now() - d.lastSeen) / 60000));
+    return m >= 60 ? `${Math.floor(m / 60)} 小时前` : `${m} 分钟前`;
+  }
+
+  function cardHtml(d) {
+    const tags = d.alarms.length
+      ? d.alarms.slice(0, 3).map(a => `<span class="tag ${a[1]}">${a[0]}</span>`).join('') +
+        (d.alarms.length > 3 ? `<span class="tag warn">+${d.alarms.length - 3}</span>` : '')
+      : '<span class="tag ok">运行正常</span>';
+
+    const currClass = d.curr >= 0 ? 'pos' : 'neg';
+
+    return `
+      <article class="card ${d.online ? '' : 'offline'}" data-id="${d.id}">
+        <div class="card-head">
+          <span class="dot ${d.online ? 'on' : 'off'}"></span>
+          <span class="name">${d.name}</span>
+          <span class="sn">${d.sn}</span>
+          <span class="state ${d.online ? 'on' : 'off'}">${d.online ? '在线' : '离线'}</span>
+        </div>
+
+        <div class="soc-row">
+          <div class="ring" style="--pct:${clamp(d.soc, 0, 100).toFixed(1)}">
+            <span>${fmt(d.soc, 0)}<small>%</small></span>
+          </div>
+          <div class="metrics">
+            <div class="metric"><label>总压</label><b>${fmt(d.volt, 2)} V</b></div>
+            <div class="metric"><label>电流</label><b class="${currClass}">${d.curr >= 0 ? '+' : ''}${fmt(d.curr, 1)} A</b></div>
+            <div class="metric"><label>最高温</label><b>${fmt(Math.max(d.temp1, d.temp2), 1)} ℃</b></div>
+            <div class="metric"><label>单体最高</label><b>${fmt(d.cellMax, 0)} mV</b></div>
+            <div class="metric"><label>单体最低</label><b>${fmt(d.cellMin, 0)} mV</b></div>
+            <div class="metric"><label>压差</label><b>${fmt(d.diff * 1000, 0)} mV</b></div>
+          </div>
+        </div>
+
+        ${sparkline(d.hist.volt.slice(-40), d.online ? '#2dd4bf' : '#64748b')}
+
+        <div class="alarms">${tags}</div>
+
+        <div class="card-foot">
+          <span>${CELL_COUNT} 串 · SOH ${fmt(d.soh, 0)}% · 循环 ${d.cycles}</span>
+          <span>${ago(d)}</span>
+        </div>
+      </article>
+    `;
+  }
+
+  function sparkline(values, color) {
+    if (!values.length) return '';
+    const w = 300, h = 40;
+    const min = Math.min.apply(null, values);
+    const max = Math.max.apply(null, values);
+    const span = (max - min) || 1;
+    const pts = values.map((v, i) =>
+      `${(i / (values.length - 1) * w).toFixed(1)},${(h - 3 - (v - min) / span * (h - 6)).toFixed(1)}`
+    );
+    return `<svg class="spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+      <path d="M${pts.join(' L')}" fill="none" stroke="${color}" stroke-width="1.8" stroke-linejoin="round"/>
+    </svg>`;
+  }
+
+  function lineChart(values, color, id) {
+    if (!values.length) return '';
+    const w = 520, h = 112;
+    const min = Math.min.apply(null, values);
+    const max = Math.max.apply(null, values);
+    const span = (max - min) || 1;
+    const lo = min - span * 0.18;
+    const hi = max + span * 0.18;
+    const pts = values.map((v, i) => {
+      const x = 5 + i / (values.length - 1) * (w - 10);
+      const y = h - 5 - (v - lo) / (hi - lo) * (h - 10);
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    });
+    const d = 'M' + pts.join(' L');
+    const area = d + ` L${w - 5},${h - 5} L5,${h - 5} Z`;
+    return `<svg class="linechart" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+      <defs>
+        <linearGradient id="g${id}" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="${color}" stop-opacity=".34"/>
+          <stop offset="100%" stop-color="${color}" stop-opacity="0"/>
+        </linearGradient>
+      </defs>
+      <path d="${area}" fill="url(#g${id})"/>
+      <path d="${d}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    </svg>`;
+  }
+
+  // ------------------------------------------------------------
+  // 详情弹层
+  // ------------------------------------------------------------
+  function openModal(id) {
+    state.openId = id;
+    document.getElementById('modal').classList.remove('hidden');
+    renderModal();
+  }
+
+  function closeModal() {
+    state.openId = null;
+    document.getElementById('modal').classList.add('hidden');
+  }
+
+  function renderModal() {
+    const d = devices[state.openId];
+    if (!d) return;
+
+    document.getElementById('m-name').textContent = d.name;
+    document.getElementById('m-sub').textContent =
+      `${d.sn} · ${d.online ? '在线' : '离线'} · 最近更新 ${ago(d)}`;
+
+    const boxes = [
+      ['SOC', `${fmt(d.soc, 1)} %`],
+      ['总压', `${fmt(d.volt, 2)} V`],
+      ['电流', `${d.curr >= 0 ? '+' : ''}${fmt(d.curr, 1)} A`],
+      ['最高温度', `${fmt(Math.max(d.temp1, d.temp2), 1)} ℃`],
+      ['SOH', `${fmt(d.soh, 1)} %`],
+      ['循环次数', `${d.cycles}`]
+    ];
+    document.getElementById('m-metrics').innerHTML = boxes.map(([l, v]) =>
+      `<div class="metric-box"><label>${l}</label><b>${v}</b></div>`
+    ).join('');
+
+    document.getElementById('m-charts').innerHTML = `
+      <div class="chart-card">
+        <div class="chart-title">总压趋势 <b>${fmt(d.volt, 2)} V</b></div>
+        ${lineChart(d.hist.volt, '#2dd4bf', 'v')}
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">SOC 趋势 <b>${fmt(d.soc, 1)} %</b></div>
+        ${lineChart(d.hist.soc, '#38bdf8', 's')}
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">电流趋势 <b>${fmt(d.curr, 1)} A</b></div>
+        ${lineChart(d.hist.curr, '#f59e0b', 'c')}
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">温度趋势 <b>${fmt(d.temp1, 1)} ℃</b></div>
+        ${lineChart(d.hist.temp, '#f472b6', 't')}
+      </div>
+    `;
+
+    document.getElementById('m-cellrange').textContent = `${fmt(d.cellMin, 0)} ~ ${fmt(d.cellMax, 0)} mV`;
+    document.getElementById('m-cellinfo').textContent = `压差 ${fmt(d.diff * 1000, 0)} mV`;
+
+    const lo = 2950, hi = 3500;
+    document.getElementById('m-cells').innerHTML = d.cells.map((v, i) => {
+      const pct = clamp((v - lo) / (hi - lo) * 100, 4, 100);
+      const cls = v === d.cellMin && d.diff > 0.05 ? 'low' : (v === d.cellMax && d.diff > 0.05 ? 'high' : '');
+      return `<div class="cell-bar ${cls}" title="第 ${i + 1} 串: ${fmt(v, 0)} mV">
+        <i style="height:${pct.toFixed(1)}%"></i>
+        <em>${i + 1}</em>
+      </div>`;
+    }).join('');
+
+    document.getElementById('m-alarms').innerHTML = d.alarms.length
+      ? d.alarms.map(a => `
+          <div class="alarm-row">
+            <span class="tag ${a[1]}">活跃</span>
+            <span>${a[0]}</span>
+            <span class="time">${new Date().toLocaleTimeString('zh-CN', { hour12: false })}</span>
+          </div>`).join('')
+      : `<div class="alarm-row"><span class="tag ok">正常</span><span>当前无活跃告警</span><span class="time">—</span></div>`;
+  }
+
+  // ------------------------------------------------------------
+  // 交互
+  // ------------------------------------------------------------
+  document.getElementById('grid').addEventListener('click', e => {
+    const card = e.target.closest('.card');
+    if (card) openModal(Number(card.dataset.id));
+  });
+
+  document.getElementById('filters').addEventListener('click', e => {
+    const btn = e.target.closest('.chip');
+    if (!btn) return;
+    state.mode = btn.dataset.mode;
+    document.querySelectorAll('#filters .chip').forEach(b => b.classList.toggle('active', b === btn));
+    renderGrid();
+  });
+
+  document.getElementById('q').addEventListener('input', e => {
+    state.q = e.target.value;
+    renderGrid();
+  });
+
+  document.getElementById('m-close').addEventListener('click', closeModal);
+  document.getElementById('modal').addEventListener('click', e => {
+    if (e.target.id === 'modal') closeModal();
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && state.openId !== null) closeModal();
+  });
+
+  render();
+  setInterval(tick, 1000);
+})();
+</script>
+</body>
+</html>
